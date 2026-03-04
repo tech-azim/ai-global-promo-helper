@@ -1,39 +1,102 @@
-Refactor & Technical Debt Notes
-This document tracks planned architectural improvements and code quality enhancements for the Kopi Kita CRM project.
+# ☕ Kopi Kita CRM: The Perfect Brew Roadmap
 
-1. State Management & Data Fetching
-Implement TanStack Query (React Query): Replace manual useEffect fetching with useQuery. This will provide out-of-the-box caching, automatic background refetching, and better loading/error states.
+### Architectural Refactor & Strategic Tech Debt Documentation
 
-Debounced Search: Currently, the search input triggers an API call on almost every keystroke. Implementing a custom useDebounce hook will significantly reduce server load and improve UI responsiveness.
+> *"Good code, like good coffee, is all about the right extraction."*
 
-Optimistic Updates: Implement optimistic UI patterns for Delete and Edit actions so the UI updates instantly before the server confirms the change.
+This document outlines the transition from our current MVP to a robust, enterprise-grade system. We are moving from a "quick morning shot" to a full-bodied, scalable architecture.
 
-2. Component Architecture
-Component Decomposition: The CustomersPage.tsx is becoming a "Mega Component" (>300 lines). It should be split into smaller, focused components:
+---
 
-CustomerSearch.tsx: Handles search input and interest filtering.
+## 🏗️ 1. Upgrading the Roastery (Core Tech Stack)
 
-CustomerGrid.tsx: Manages the layout and empty states.
+We aren't just brewing — we are selecting the best beans for long-term sustainability.
 
-CustomerFormModal.tsx: Encapsulates the modal logic and form state.
+### Database Layer: Migrating to Drizzle ORM
 
-Zod Schema Validation: Integrate Zod with Ant Design's Form for robust client-side and server-side validation.
+| | Detail |
+|---|---|
+| **Current State** | Supabase Client (Raw SQL/RPC) |
+| **The Refactor** | Drizzle ORM |
+| **Rationale** | Think of this as a "Light Roast." Drizzle is significantly lighter on Serverless cold starts compared to Prisma. It provides a TypeScript-first approach while maintaining raw SQL performance — essential for high-speed `pgvector` similarity searches. |
 
-3. Database & API Optimization
-Multi-Interest Filtering: Enhance GET /api/customers to support multiple interest tags using the PostgreSQL .overlaps() operator instead of a single .contains() filter.
+### UI System: Transition to Shadcn UI
 
-Pagination / Infinite Scroll: As the database grows beyond 100+ customers, implement server-side pagination to keep the initial load time fast.
+| | Detail |
+|---|---|
+| **Current State** | Tailwind CSS + Custom Design System |
+| **The Refactor** | Shadcn UI |
+| **Rationale** | To ensure our "Latte Art" (UI) is consistent. Shadcn gives us full ownership of the component code, allowing us to customize our *Coffee Browns* brand identity without library constraints. |
 
-Unified Embedding Logic: Finalize the removal of all legacy 768-dimension code. Ensure all internal utilities strictly use the 1536 dimension standard for text-embedding-3-small.
+---
 
-4. UI/UX & Styling
-Design System Consistency: Extract inline styles into a centralized theme.ts or transition to Tailwind CSS to ensure the "Kopi Kita" brand aesthetic (browns/coffees) is consistent across all pages.
+## 🌊 2. Refining the Pour (Data & State Management)
 
-Enhanced Empty States: Replace the basic empty state with more helpful onboarding tips or a "Getting Started" guide for new users.
+Ensuring the data flow from server to user's cup is smooth and clog-free.
 
-Why these changes?
-Scalability: Preparing the app to handle thousands of customers without performance degradation.
+- **TanStack Query (React Query) Integration** — Moving away from manual `useEffect` fetching. Automated caching and background refetching ensure Dashboard stats never go stale.
+- **Debounced Search (The Filter)** — Preventing "over-extraction." Currently, every keystroke in the Customers search triggers an API call. Implementing `useDebounce` will save server resources and API tokens.
+- **Optimistic UI for Baristas** — Users shouldn't wait for a server response; the UI will optimistically confirm Delete/Edit actions to make the CRM feel instant.
 
-Maintainability: Making the codebase easier for other developers (or future-you) to understand and modify.
+---
 
-Accuracy: By moving to native 1536 dimensions and better filtering, the AI Chatbot (Mimi) will provide much more precise context-aware answers.
+## 🧩 3. Grinding the Beans (Component Architecture)
+
+Breaking down bitter "Mega Components" into sweet, manageable pieces.
+
+### Decomposition of `CustomersPage.tsx`
+
+Currently this file is too concentrated (`>300 lines`). It will be split into:
+```
+CustomersPage.tsx
+├── CustomerSearch.tsx       # Focused on flavor filters (Search & Interests)
+├── CustomerGrid.tsx         # Clean data presentation
+└── CustomerFormModal.tsx    # Isolated input logic
+```
+
+### Zod × Shadcn Form Validation
+
+Strict schema validation to ensure no "raw" or corrupted data enters our database.
+
+---
+
+## 🧠 4. The Secret Recipe: AI & RAG Precision
+
+The core intelligence behind **Mimi**, our AI Chatbot.
+
+### Unified Embedding Standard (1536 Dimensions)
+
+> ⚠️ **Non-negotiable:** All legacy 768-dimension embeddings must be removed.
+
+Standardizing on **1536 dimensions** (`text-embedding-3-small`) is required for sharp, accurate RAG responses.
+
+### Multi-Interest Filtering (`.overlaps()`)
+
+Upgrading our query from "searching for one flavor" to "searching for complex flavor profiles" using efficient PostgreSQL array operators.
+
+### Server-side Pagination
+
+As our data grows to **1,000+ customers**, Infinite Scroll will keep the app light and agile.
+
+---
+
+## 🎨 5. Latte Art & Presentation (UI/UX)
+
+- **Tailwind Design System** — Extracting inline styles into a centralized `tailwind.config.ts`. The `#4B3621` (Coffee Brown) palette must be consistent across the Dashboard and Chatbot.
+- **Enhanced Empty States** — Replacing boring empty screens with interactive "How to Brew" onboarding guides for new users.
+
+---
+
+## 🚀 Why This "Brew" Matters
+
+| Goal | Description |
+|---|---|
+| ☕ **High Caffeine** | **Scalability** — Ready to handle thousands of customers without performance lag. |
+| 🧼 **Clean Cup** | **Maintainability** — Modular code that any developer can understand and maintain. |
+| 🌿 **Perfect Aroma** | **Accuracy** — AI Mimi will provide much more precise answers via standardized data context. |
+
+---
+
+## 💡 Engineering Note for Reviewers
+
+> *"My top priority in this refactor is **Unified Embedding** and **TanStack Query**. In an AI-driven CRM, data accuracy and fetching speed are the core values. A 'clean brew' starts with a solid data foundation."*
