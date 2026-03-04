@@ -4,8 +4,8 @@
 ## Tech Stack
 - **Framework:** Next.js 16 (App Router)
 - **Database:** Supabase (PostgreSQL + pgvector)
-- **Embedding:** Google Gemini `text-embedding-004`
-- **LLM:** Groq `llama3-8b-8192`
+- **Embedding:** OpenRouter embedding model
+- **LLM:** Groq `llama-3.3-70b-versatile`
 - **Auth:** JWT via `jose` + bcryptjs
 - **UI:** Tailwind CSS + custom design system
 
@@ -24,7 +24,6 @@ Copy `.env.local` and fill in:
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
-GEMINI_API_KEY=         # from aistudio.google.com
 GROQ_API_KEY=           # from console.groq.com
 JWT_SECRET=kopi-kita-secret-2026
 ```
