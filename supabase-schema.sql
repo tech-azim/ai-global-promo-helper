@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS customers (
   contact TEXT,
   favorite_drink TEXT,
   tags TEXT[] DEFAULT '{}',
-  embedding VECTOR(768),
+  embedding VECTOR(1536),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -61,7 +61,7 @@ CREATE OR REPLACE TRIGGER customers_updated_at
 
 -- 6. Match customers function (for semantic search)
 CREATE OR REPLACE FUNCTION match_customers(
-  query_embedding VECTOR(768),
+  query_embedding VECTOR(1536),
   match_threshold FLOAT DEFAULT 0.6,
   match_count INT DEFAULT 15
 )

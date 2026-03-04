@@ -100,12 +100,9 @@ export async function POST() {
 
         const embedding = await embeddingService.embedText(textToEmbed);
 
-        // Convert 1536 dimensions to 768 (average pooling)
-        const convertedEmbedding = convertEmbeddingDimension(embedding, 768);
-
         const { error: updateError } = await supabaseAdmin
           .from("customers")
-          .update({ embedding: convertedEmbedding })
+          .update({ embedding: embedding })
           .eq("id", customer.id);
 
         if (updateError) {

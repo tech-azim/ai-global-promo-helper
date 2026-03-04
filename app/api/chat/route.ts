@@ -35,11 +35,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Step 1: Embed + convert ke 768 dimensi
     const rawEmbedding = await embeddingService.embedText(message);
-    const queryEmbedding = convertEmbeddingDimension(rawEmbedding, 768);
 
-    // Step 2: Vector search + keyword search + promo fetch — parallel
+    // Step 2: Vector searc + keyword search + promo fetch — parallel
     const [
       { data: similarCustomers },
       { data: nameMatches },
@@ -47,7 +45,7 @@ export async function POST(req: NextRequest) {
       { count: totalCount },
     ] = await Promise.all([
       supabaseAdmin.rpc("match_customers", {
-        query_embedding: queryEmbedding,
+        query_embedding: rawEmbedding,
         match_threshold: 0.3,
         match_count: 15,
       }),

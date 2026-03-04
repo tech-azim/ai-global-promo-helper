@@ -104,8 +104,7 @@ Example output:
 
 **Dimension handling:**  
 - Model output: 1536 dimensions  
-- Database storage: 768 dimensions (reduced via average pooling)  
-- Query embedding also converted to 768 dimensions before vector search
+- Database storage: 1536 dimensions 
 
 ---
 

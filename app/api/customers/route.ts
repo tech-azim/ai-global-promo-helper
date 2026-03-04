@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
     );
     if (textToEmbed.trim()) {
       const raw = await embeddingService.embedText(textToEmbed);
-      embedding = convertEmbeddingDimension(raw, 768);
+      embedding = raw;
     }
 
     const { data, error } = await supabaseAdmin
