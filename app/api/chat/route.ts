@@ -4,8 +4,8 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { embeddingService } from "@/lib/openrouter";
 import { llmService } from "@/lib/groq";
 import { requireAuth } from "@/lib/auth";
+import { getWeekLabel } from "@/lib/utils";
 
-// Harus sama dengan convertEmbeddingDimension di seed/route.ts
 function convertEmbeddingDimension(
   embedding: number[],
   targetDim: number,
@@ -35,28 +35,40 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Step 1: Embed + convert ke 768 dimensi (sama dengan customer embeddings di DB)
+    // Step 1: Embed + convert ke 768 dimensi
     const rawEmbedding = await embeddingService.embedText(message);
     const queryEmbedding = convertEmbeddingDimension(rawEmbedding, 768);
 
-    // Step 2: Vector search — semantically similar customers
-    const { data: similarCustomers } = await supabaseAdmin.rpc(
-      "match_customers",
-      {
+    // Step 2: Vector search + keyword search + promo fetch — parallel
+    const [
+      { data: similarCustomers },
+      { data: nameMatches },
+      { data: campaigns },
+      { count: totalCount },
+    ] = await Promise.all([
+      supabaseAdmin.rpc("match_customers", {
         query_embedding: queryEmbedding,
         match_threshold: 0.3,
         match_count: 15,
-      },
-    );
+      }),
+      supabaseAdmin
+        .from("customers")
+        .select("id, name, contact, favorite_drink, tags")
+        .ilike("name", `%${message.split(" ")[0]}%`)
+        .limit(5),
+      supabaseAdmin
+        .from("promo_campaigns")
+        .select(
+          "theme, segment_description, target_tags, target_count, why_now, message, best_time, week_label",
+        )
+        .order("generated_at", { ascending: false })
+        .limit(10),
+      supabaseAdmin
+        .from("customers")
+        .select("*", { count: "exact", head: true }),
+    ]);
 
-    // Step 3: Keyword fallback — cari by nama
-    const { data: nameMatches } = await supabaseAdmin
-      .from("customers")
-      .select("id, name, contact, favorite_drink, tags")
-      .ilike("name", `%${message.split(" ")[0]}%`)
-      .limit(5);
-
-    // Step 4: Merge & deduplicate
+    // Step 3: Merge & deduplicate customers
     const allMatched = [...(similarCustomers ?? []), ...(nameMatches ?? [])];
     const seen = new Set();
     const uniqueMatched = allMatched.filter((c) => {
@@ -65,12 +77,7 @@ export async function POST(req: NextRequest) {
       return true;
     });
 
-    // Step 5: Get total count
-    const { count: totalCount } = await supabaseAdmin
-      .from("customers")
-      .select("*", { count: "exact", head: true });
-
-    // Step 6: Jika hasil vector search < 5, fallback ke semua customer
+    // Step 4: Fallback ke semua customer jika hasil < 5
     let contextCustomers = uniqueMatched;
     let contextNote = "";
 
@@ -86,10 +93,10 @@ export async function POST(req: NextRequest) {
       contextNote = `(${uniqueMatched.length} customer paling relevan dari total ${totalCount})`;
     }
 
-    // Step 7: Build context string
+    // Step 5: Build customer context
     let customerContext = "";
     if (contextCustomers.length > 0) {
-      customerContext = `Data customer Kopi Kita ${contextNote}:\n`;
+      customerContext = `DATA CUSTOMER ${contextNote}:\n`;
       customerContext += contextCustomers
         .map(
           (c) =>
@@ -101,8 +108,43 @@ export async function POST(req: NextRequest) {
       customerContext = `Total customer: ${totalCount}. Belum ada data detail customer.`;
     }
 
+    // Step 6: Build promo context
+    let promoContext = "";
+    if (campaigns && campaigns.length > 0) {
+      const weekLabel = getWeekLabel();
+      const thisWeek = campaigns.filter((c) => c.week_label === weekLabel);
+      const older = campaigns.filter((c) => c.week_label !== weekLabel);
+
+      promoContext = "\n\nDATA PROMO CAMPAIGNS:\n";
+
+      if (thisWeek.length > 0) {
+        promoContext += `Promo minggu ini (${weekLabel}):\n`;
+        promoContext += thisWeek
+          .map(
+            (c) =>
+              `- Tema: "${c.theme}" | Target: ${c.segment_description} (${c.target_count} customer) | Tags: [${c.target_tags?.join(", ")}] | Kenapa sekarang: ${c.why_now} | Pesan: "${c.message}" | Waktu terbaik: ${c.best_time}`,
+          )
+          .join("\n");
+      }
+
+      if (older.length > 0) {
+        promoContext += `\nPromo sebelumnya:\n`;
+        promoContext += older
+          .map(
+            (c) =>
+              `- [${c.week_label}] "${c.theme}" — ${c.segment_description}`,
+          )
+          .join("\n");
+      }
+    } else {
+      promoContext = "\n\nBelum ada promo campaign yang digenerate.";
+    }
+
+    // Step 7: Combine full context
+    const fullContext = customerContext + promoContext;
+
     // Step 8: Generate response
-    const answer = await llmService.chat(message, customerContext, history);
+    const answer = await llmService.chat(message, fullContext, history);
 
     return NextResponse.json({
       answer,
