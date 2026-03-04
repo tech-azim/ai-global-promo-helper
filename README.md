@@ -1,30 +1,39 @@
 # Kopi Kita CRM ☕
-> Mini CRM + AI Global Promo Helper for Mimi's Coffee Shop
+> Mini CRM + AI Promo Helper for Mimi's Coffee Shop — powered by RAG, vector search, and Groq LLM.
+
+📄 **Docs:** [Refactor Roadmap](./REFACTOR.md) · [AI Prompts](./AI_PROMPTS.md)
+
+---
 
 ## Tech Stack
-- **Framework:** Next.js 16 (App Router)
-- **Database:** Supabase (PostgreSQL + pgvector)
-- **Embedding:** OpenRouter embedding model
-- **LLM:** Groq `llama-3.3-70b-versatile`
-- **Auth:** JWT via `jose` + bcryptjs
-- **UI:** Tailwind CSS + custom design system
+
+| Layer | Technology |
+|---|---|
+| **Framework** | Next.js 15 (App Router) |
+| **Database** | Supabase (PostgreSQL + pgvector) |
+| **LLM** | Groq — `llama-3.3-70b-versatile` |
+| **Embeddings** | OpenRouter (1536 dimensions) |
+| **Auth** | JWT via `jose` + bcryptjs |
+| **UI** | Tailwind CSS + custom design system |
+
+---
 
 ## Setup
 
 ### 1. Install dependencies
 ```bash
 pnpm install
-pnpm add @supabase/supabase-js groq-sdk @google/generative-ai bcryptjs jose lucide-react clsx tailwind-merge sonner
+pnpm add @supabase/supabase-js groq-sdk bcryptjs jose lucide-react clsx tailwind-merge sonner
 pnpm add @types/bcryptjs -D
 ```
 
 ### 2. Environment variables
-Copy `.env.local` and fill in:
-```
+```env
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
-GROQ_API_KEY=           # from console.groq.com
+GROQ_API_KEY=           # console.groq.com
+OPENROUTER_API_KEY=     # openrouter.ai
 JWT_SECRET=kopi-kita-secret-2026
 ```
 
@@ -32,24 +41,41 @@ JWT_SECRET=kopi-kita-secret-2026
 Run `supabase-schema.sql` in your Supabase SQL Editor.
 
 ### 4. Seed data
-Start the app, then call:
 ```bash
+pnpm dev
 curl -X POST http://localhost:3000/api/seed
 ```
-This generates embeddings for all seed customers and fixes the login password.
+Generates 1536-dim embeddings for all seed customers and fixes the login password.
 
 ### 5. Run
 ```bash
 pnpm dev
 ```
 
+---
+
 ## Login
-- Email: `mimi@kopikita.id`
-- Password: `kopikita123`
+
+| Field | Value |
+|---|---|
+| Email | `mimi@kopikita.id` |
+| Password | `kopikita123` |
+
+---
 
 ## Features
-- 🔐 **Login** — JWT-based authentication
-- 👥 **Customers** — Add/edit/delete, search by name, filter by tags
-- ✨ **Promo Ideas** — AI-generated weekly promo themes from customer data
+
+- 🔐 **Auth** — JWT-based login
+- 👥 **Customers** — Add/edit/delete, search by name, filter by interest tags
+- ✨ **Promo Ideas** — 3 AI-generated weekly promo themes based on customer interest data
 - 📊 **Dashboard** — Stats, top interests, campaign overview
-- 🤖 **AI Chatbot** — RAG-powered chat with customer data context
+- 🤖 **Mimi Chatbot** — RAG-powered chat with vector search + keyword fallback
+
+---
+
+## Project Docs
+
+| File | Description |
+|---|---|
+| [REFACTOR.md](./REFACTOR.md) | Architectural roadmap & tech debt plan |
+| [AI_PROMPTS.md](./AI_PROMPTS.md) | All AI prompts, models, and RAG strategy |

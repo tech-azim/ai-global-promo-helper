@@ -1,15 +1,19 @@
 # AI Prompts — Kopi Kita CRM
 
-This file documents all AI prompts used in the application.
+Documents all AI prompts, models, and retrieval strategies used in the application.
+
+← [Back to README](./README.md) · [Refactor Roadmap](./REFACTOR.md)
 
 ---
 
-## 1. Global Promo Generation (`lib/groq.ts` → `generatePromos`)
+## 1. Promo Generation
 
-**Model:** `llama-3.3-70b-versatile` (Groq)  
-**Used in:** `POST /api/promo`  
+**File:** `lib/groq.ts` → `generatePromos`  
+**Endpoint:** `POST /api/promo`  
+**Model:** Groq — `llama-3.3-70b-versatile`  
 **Purpose:** Analyze customer interest tags and generate 3 weekly promo themes with target segments and ready-to-send messages.
 
+### Prompt
 ```
 You are a smart marketing assistant for "Kopi Kita", a trendy Indonesian coffee shop.
 
@@ -41,21 +45,22 @@ RULES:
 3. message must be 1-2 sentences, conversational, include emoji, end with a question or CTA
 4. why_now must reference actual numbers from the data
 5. Respond ONLY with the JSON object
-6. ALL text fields (theme, segment_description, why_now, message, best_time) MUST be written in Bahasa Indonesia
+6. ALL text fields MUST be written in Bahasa Indonesia
 ```
 
-**Input:** Tag frequency array (top 15 tags) + total customer count  
-**Output:** JSON array of 3 promo themes
+**Input:** Top 15 interest tags + total customer count  
+**Output:** JSON array of 3 promo objects
 
 ---
 
-## 2. AI Chatbot (`lib/groq.ts` → `chat`)
+## 2. AI Chatbot (Mimi)
 
-**Model:** `llama-3.3-70b-versatile` (Groq)  
-**Used in:** `POST /api/chat`  
-**Purpose:** Answer questions about customer data using RAG (Retrieval-Augmented Generation) with vector search + keyword fallback.
+**File:** `lib/groq.ts` → `chat`  
+**Endpoint:** `POST /api/chat`  
+**Model:** Groq — `llama-3.3-70b-versatile`  
+**Purpose:** Answer questions about customer data using RAG with vector search and keyword fallback.
 
-### System Prompt:
+### System Prompt
 ```
 Kamu adalah asisten AI Mimi di Kopi Kita coffee shop yang cerdas dan helpful.
 
@@ -64,55 +69,58 @@ DATA CUSTOMER YANG TERSEDIA:
 
 CARA MENJAWAB:
 - Jawab dalam Bahasa Indonesia yang santai dan ramah
-- Jika pertanyaan tentang "siapa" atau meminta daftar customer → WAJIB sebutkan nama-nama customer spesifik dari data di atas beserta detail relevannya (minuman favorit, tags)
+- Jika pertanyaan tentang "siapa" atau meminta daftar customer → WAJIB sebutkan nama-nama customer spesifik beserta detail relevannya (minuman favorit, tags)
 - Jika pertanyaan tentang jumlah → hitung dari data dan berikan angka pasti
 - Jika pertanyaan tentang rekomendasi promo → sebut nama customer yang cocok di-target
 - Jika pertanyaan tentang segmen → kelompokkan customer berdasarkan tags dan sebutkan nama-namanya
-- JANGAN bilang "data tidak cukup" jika data customer sudah tersedia di atas — gunakan data tersebut
+- JANGAN bilang "data tidak cukup" jika data customer sudah tersedia di atas
 - Format jawaban yang melibatkan banyak nama: gunakan bullet point atau daftar bernomor
 - Jawaban singkat, padat, dan actionable
 - Boleh pakai emoji sesekali ☕
 ```
 
-**Context building strategy:**
-1. Embed user query → vector search (`match_customers` RPC, threshold 0.3)
-2. Keyword search by customer name
-3. Merge + deduplicate results
-4. If results < 5 → fallback to all customers
-5. Build context string with name, contact, favorite drink, tags
+### RAG Context Strategy
 
-**Input:** User message + customer context + last 6 chat history messages  
+| Step | Action |
+|---|---|
+| 1 | Embed user query via OpenRouter |
+| 2 | Vector search via `match_customers` RPC (threshold `0.3`, limit `15`) |
+| 3 | Keyword search by customer name |
+| 4 | Merge + deduplicate results |
+| 5 | If results < 5 → fallback to all customers |
+| 6 | Build context string: name, contact, favorite drink, tags |
+
+**Input:** User message + customer context + last 6 messages of chat history  
 **Output:** Natural language response in Bahasa Indonesia
 
 ---
 
-## 3. Customer Embedding (`lib/openrouter.ts` → `embedText`)
+## 3. Customer Embedding
 
+**File:** `lib/openrouter.ts` → `embedText`  
+**Endpoints:** `POST /api/seed`, `POST /api/customers`, `PUT /api/customers/[id]`  
 **Model:** OpenRouter embedding model  
-**Used in:** `POST /api/seed`, `POST /api/customers`, `PUT /api/customers/[id]`  
-**Purpose:** Generate vector embeddings for semantic search in the AI chatbot.
+**Purpose:** Generate vector embeddings per customer for semantic search in the chatbot.
 
-### Text format for embedding:
+### Text Format
 ```
-{buildCustomerText(favorite_drink, tags)}
-```
-
-Example output:
-```
-"Caramel Cold Brew. Interests: sweet drinks, caramel, extra ice"
+{favorite_drink}. Interests: {tags joined by ", "}
 ```
 
-**Dimension handling:**  
-- Model output: 1536 dimensions  
-- Database storage: 1536 dimensions 
+**Example:**
+```
+Caramel Cold Brew. Interests: sweet drinks, caramel, extra ice
+```
+
+**Dimensions:** 1536 (stored in Supabase `pgvector` column)
 
 ---
 
-## 4. Vector Search (`supabase` → `match_customers` RPC)
+## 4. Vector Search RPC
 
+**Function:** `match_customers` (Supabase RPC)  
 **Used in:** `POST /api/chat`  
-**Purpose:** Find semantically similar customers to the user's query.
-
+**Purpose:** Return the most semantically similar customers to a given query embedding.
 ```sql
 SELECT id, name, contact, favorite_drink, tags,
   1 - (embedding <=> query_embedding) AS similarity
@@ -123,18 +131,7 @@ ORDER BY similarity DESC
 LIMIT match_count;
 ```
 
-**Parameters:**
-- `match_threshold`: 0.3 (lower = more results)
-- `match_count`: 15
-
----
-
-## Tech Stack
-
-| Component | Technology |
-|---|---|
-| LLM (Promo + Chat) | Groq — `llama-3.3-70b-versatile` |
-| Embeddings | OpenRouter |
-| Vector DB | Supabase + pgvector |
-| Framework | Next.js 15 |
-| UI | Ant Design |
+| Parameter | Value | Notes |
+|---|---|---|
+| `match_threshold` | `0.3` | Lower = more permissive results |
+| `match_count` | `15` | Max customers returned per query |
