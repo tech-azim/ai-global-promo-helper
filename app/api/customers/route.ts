@@ -26,14 +26,23 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const search = searchParams.get("search")?.trim();
+    const interest = searchParams.get("interest")?.trim(); // Ambil param interest
 
     let query = supabaseAdmin
       .from("customers")
       .select("id, name, contact, favorite_drink, tags, created_at")
       .order("created_at", { ascending: false });
 
+    // 1. Logic Search by Name atau Contact
     if (search) {
       query = query.or(`name.ilike.%${search}%,contact.ilike.%${search}%`);
+    }
+
+    // 2. Logic Filter by Interest (Tags)
+    // Menggunakan operator 'cs' (contains) atau 'ov' (overlaps) untuk array
+    if (interest) {
+      // Mencari customer yang memiliki tag tersebut di dalam array tags
+      query = query.contains("tags", [interest]);
     }
 
     const { data, error } = await query;
