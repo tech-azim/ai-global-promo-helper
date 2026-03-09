@@ -4,29 +4,6 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { embeddingService } from "@/lib/openrouter";
 import { hashPassword } from "@/lib/auth";
 
-/**
- * Convert embedding to target dimension using average pooling
- * Reduces higher dimensions to lower with minimal info loss
- */
-function convertEmbeddingDimension(
-  embedding: number[],
-  targetDim: number,
-): number[] {
-  if (embedding.length === targetDim) return embedding;
-
-  const result: number[] = [];
-  const ratio = embedding.length / targetDim;
-
-  for (let i = 0; i < targetDim; i++) {
-    const start = Math.floor(i * ratio);
-    const end = Math.floor((i + 1) * ratio);
-    const chunk = embedding.slice(start, end);
-    const avg = chunk.reduce((a, b) => a + b, 0) / chunk.length;
-    result.push(avg);
-  }
-
-  return result;
-}
 
 // POST /api/seed — run once to generate embeddings + fix user password
 export async function POST() {

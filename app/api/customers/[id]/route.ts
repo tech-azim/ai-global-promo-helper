@@ -4,22 +4,6 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { embeddingService } from "@/lib/openrouter";
 import { requireAuth } from "@/lib/auth";
 
-function convertEmbeddingDimension(
-  embedding: number[],
-  targetDim: number,
-): number[] {
-  if (embedding.length === targetDim) return embedding;
-  const result: number[] = [];
-  const ratio = embedding.length / targetDim;
-  for (let i = 0; i < targetDim; i++) {
-    const start = Math.floor(i * ratio);
-    const end = Math.floor((i + 1) * ratio);
-    const chunk = embedding.slice(start, end);
-    result.push(chunk.reduce((a, b) => a + b, 0) / chunk.length);
-  }
-  return result;
-}
-
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
