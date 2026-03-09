@@ -22,7 +22,7 @@ Architectural refactor & strategic tech debt documentation. This outlines the tr
 
 | | Detail |
 |---|---|
-| **Current** | Tailwind CSS + custom design system |
+| **Current** | Ant Design + Tailwind CSS |
 | **Target** | Shadcn UI |
 | **Why** | Full ownership of component code. Enables consistent `#4B3621` (Coffee Brown) brand palette without library lock-in. |
 

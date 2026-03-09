@@ -14,7 +14,7 @@
 | **LLM** | Groq — `llama-3.3-70b-versatile` |
 | **Embeddings** | OpenRouter (1536 dimensions) |
 | **Auth** | JWT via `jose` + bcryptjs |
-| **UI** | Tailwind CSS + custom design system |
+| **UI** | Ant Design + Tailwind CSS |
 
 ---
 
