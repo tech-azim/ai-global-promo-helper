@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { embeddingService } from "@/lib/openrouter";
 import { llmService } from "@/lib/groq";
+import { rerankerService } from "@/lib/reranker";
 import { requireAuth } from "@/lib/auth";
 import { getWeekLabel } from "@/lib/utils";
 
@@ -59,11 +60,25 @@ export async function POST(req: NextRequest) {
       return true;
     });
 
-    // Step 4: Fallback ke semua customer jika hasil < 5
+    // Step 4: Rerank customers using Cohere
     let contextCustomers = uniqueMatched;
     let contextNote = "";
 
-    if (uniqueMatched.length < 5) {
+    if (uniqueMatched.length > 0) {
+      try {
+        const reranked = await rerankerService.rerank(
+          message,
+          uniqueMatched,
+          7, // Keep top 7 most relevant customers
+        );
+        contextCustomers = reranked;
+        contextNote = `(${reranked.length} customer paling relevan dari ${uniqueMatched.length} hasil pencarian, dari total ${totalCount})`;
+      } catch (rerankerError) {
+        console.warn("Reranking gagal, menggunakan hasil awal:", rerankerError);
+        contextNote = `(${uniqueMatched.length} customer paling relevan dari total ${totalCount})`;
+      }
+    } else {
+      // Fallback ke semua customer jika hasil awal < 1
       const { data: allCustomers } = await supabaseAdmin
         .from("customers")
         .select("id, name, contact, favorite_drink, tags")
@@ -71,8 +86,6 @@ export async function POST(req: NextRequest) {
 
       contextCustomers = allCustomers ?? [];
       contextNote = `(semua ${contextCustomers.length} customer)`;
-    } else {
-      contextNote = `(${uniqueMatched.length} customer paling relevan dari total ${totalCount})`;
     }
 
     // Step 5: Build customer context

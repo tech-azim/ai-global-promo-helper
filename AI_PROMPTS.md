@@ -87,8 +87,15 @@ CARA MENJAWAB:
 | 2 | Vector search via `match_customers` RPC (threshold `0.3`, limit `15`) |
 | 3 | Keyword search by customer name |
 | 4 | Merge + deduplicate results |
-| 5 | If results < 5 → fallback to all customers |
-| 6 | Build context string: name, contact, favorite drink, tags |
+| 5 | **Rerank results via Cohere** (keep top 7) |
+| 6 | If no results → fallback to all customers |
+| 7 | Build context string: name, contact, favorite drink, tags |
+
+**Reranking Details:**
+- Model: `rerank-english-v3.0`
+- Purpose: Improve relevance of retrieved customers by re-scoring based on semantic similarity to user query
+- Fallback: If reranking fails, uses original vector search results
+- Output: Up to 7 most relevant customers, sorted by relevance score
 
 **Input:** User message + customer context + last 6 messages of chat history  
 **Output:** Natural language response in Bahasa Indonesia
@@ -135,3 +142,31 @@ LIMIT match_count;
 |---|---|---|
 | `match_threshold` | `0.3` | Lower = more permissive results |
 | `match_count` | `15` | Max customers returned per query |
+
+---
+
+## 5. Reranking Pipeline
+
+**File:** `lib/reranker.ts` → `RerankerService.rerank()`  
+**Endpoint:** `POST /api/chat` (internal)  
+**Model:** Cohere — `rerank-english-v3.0`  
+**Purpose:** Re-score and reorder retrieved customers by relevance to user query, improving final answer quality.
+
+### How It Works
+1. Receives initial retrieval results from vector + keyword search (up to 15 customers)
+2. Converts each customer into a document string: `Name: X, Contact: Y, Favorite: Z, Tags: [...]`
+3. Sends to Cohere API with user query for semantic reranking
+4. Returns top 7 customers sorted by relevance score
+5. Falls back to original results if Cohere API fails
+
+### Configuration
+```typescript
+const topK = 7; // Number of top results to keep
+const model = "rerank-english-v3.0"; // Stable, high-quality reranker
+```
+
+**When to Use:** Recommended for queries expecting specific customer recommendations (e.g., "Who likes sweet drinks?")  
+**When Not Needed:** General conversational queries may not benefit as much  
+**Cost:** Cohere reranking has a separate pricing tier; monitor usage in high-traffic scenarios.
+
+---

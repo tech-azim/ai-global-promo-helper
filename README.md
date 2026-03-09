@@ -23,7 +23,7 @@
 ### 1. Install dependencies
 ```bash
 pnpm install
-pnpm add @supabase/supabase-js groq-sdk bcryptjs jose lucide-react clsx tailwind-merge sonner
+pnpm add @supabase/supabase-js groq-sdk cohere-ai bcryptjs jose lucide-react clsx tailwind-merge sonner
 pnpm add @types/bcryptjs -D
 ```
 
@@ -34,6 +34,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 GROQ_API_KEY=           # console.groq.com
 OPENROUTER_API_KEY=     # openrouter.ai
+COHERE_API_KEY=         # dashboard.cohere.com (for reranking)
 JWT_SECRET=kopi-kita-secret-2026
 ```
 
@@ -69,7 +70,7 @@ pnpm dev
 - 👥 **Customers** — Add/edit/delete, search by name, filter by interest tags
 - ✨ **Promo Ideas** — 3 AI-generated weekly promo themes based on customer interest data
 - 📊 **Dashboard** — Stats, top interests, campaign overview
-- 🤖 **Mimi Chatbot** — RAG-powered chat with vector search + keyword fallback
+- 🤖 **Mimi Chatbot** — RAG-powered chat with vector search, keyword fallback, and Cohere reranking
 
 ---
 
